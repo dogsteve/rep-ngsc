@@ -31,6 +31,15 @@ func StartServer() {
 		app.USER_STORE.Store(userCredentials.Username, userCredentials)
 	})
 
+	r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
+		userResponse := make([]app.UserCredentials, 0)
+		app.USER_STORE.Range(func(key, value interface{}) bool {
+			userResponse = append(userResponse, value.(app.UserCredentials))
+			return true
+		})
+		render.JSON(w, r, userResponse)
+	})
+
 	r.Post("/cron", func(w http.ResponseWriter, r *http.Request) {
 		var cron CronnJobConfig
 		err := render.Decode(r, &cron)

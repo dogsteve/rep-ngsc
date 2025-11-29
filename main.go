@@ -7,6 +7,6 @@ import (
 
 func main() {
 	go app.WaitForWritingLog()
-	go app.RunJob()
+	app.RunJob()
 	server.StartServer()
 }

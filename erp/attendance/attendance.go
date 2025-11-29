@@ -63,12 +63,15 @@ func BuildAttendanceJSON(userArgID int, userID int) DataJSON {
 func DoAttendance(username string, userId, userArgId int) error {
 	loginSession, ok := login.LOGIN_SESSION[username]
 	if !ok {
+		fmt.Println("login.LOGIN_SESSION ERROR")
 		return fmt.Errorf("need login first " + username)
 	}
 	if loginSession.ExpireTime.Compare(time.Now()) < 0 {
+		fmt.Println("login.LOGIN_SESSION ERROR")
 		return fmt.Errorf("need login first " + username)
 	}
 
+	fmt.Printf("login.LOGIN_SESSION OK %v\n", loginSession)
 	dataJSON := BuildAttendanceJSON(userArgId, userId)
 
 	restyClient := resty.New()
