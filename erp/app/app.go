@@ -105,7 +105,7 @@ func RunJob() {
 		currentTime := time.Now()
 		fmt.Printf("\n--- [%s] Start morning routine ---\n", currentTime.Format("15:04:05"))
 		USER_STORE.Range(func(key, value interface{}) bool {
-			addTime := time.Duration(generateRandomInt(1, 2)) * time.Minute
+			addTime := time.Duration(generateRandomInt(1, 20)) * time.Minute
 			newTime := currentTime.Add(addTime)
 
 			newCronn := createSpecificCronStringFromTime(newTime)
@@ -138,7 +138,7 @@ func RunJob() {
 		currentTime := time.Now()
 		fmt.Printf("\n--- [%s] Start evening routine ---\n", currentTime.Format("15:04:05"))
 		USER_STORE.Range(func(key, value interface{}) bool {
-			addTime := time.Duration(generateRandomInt(1, 2)) * time.Minute
+			addTime := time.Duration(generateRandomInt(1, 40)) * time.Minute
 			newTime := currentTime.Add(addTime)
 			newCronn := createSpecificCronStringFromTime(newTime)
 
