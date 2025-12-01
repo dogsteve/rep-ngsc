@@ -15,13 +15,13 @@ const customTimeFormat = "2006-01-02T15:04"
 const CsvPath = "./attendance.csv"
 const TimeLayout = time.RFC3339
 
-//var DailyMorningCron = "0 0 8 * * *"
+var DailyMorningCron = "0 0 8 * * *"
 
-var DailyMorningCron = "0 * * * * *"
+//var DailyMorningCron = "0 * * * * *"
 
-//var DailyEveningCron = "0 45 17 * * *"
+var DailyEveningCron = "0 45 17 * * *"
 
-var DailyEveningCron = "0 * * * * *"
+//var DailyEveningCron = "0 * * * * *"
 
 var USER_STORE = sync.Map{}
 
