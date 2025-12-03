@@ -129,7 +129,9 @@ func RunJob() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	c := cron.New(cron.WithLocation(loc))
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
+	c := cron.New(cron.WithLocation(loc), cron.WithParser(parser))
 
 	go WaitForWritingLog()
 

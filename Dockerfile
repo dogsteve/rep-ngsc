@@ -27,7 +27,13 @@ ENV SERVICE_NAME=none
 # Set working directory
 WORKDIR /root/
 
+RUN apk add --no-cache tzdata
 RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache curl
+
+# 3. THIẾT LẬP biến môi trường TZ
+# Đảm bảo bạn sử dụng tên múi giờ chuẩn IANA (ví dụ: Asia/Ho_Chi_Minh)
+ENV TZ=Asia/Ho_Chi_Minh
 
 # Copy the built binary from the builder stage
 COPY --from=builder /app/should_copy_data/ .
