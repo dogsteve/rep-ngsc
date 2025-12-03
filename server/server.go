@@ -21,14 +21,17 @@ func StartServer() {
 	r.Use(middleware.Recoverer)
 
 	r.Post("/upload", func(w http.ResponseWriter, r *http.Request) {
-		var userCredentials app.UserCredentials
+		var userCredentials []app.UserCredentials
 		err := render.Decode(r, &userCredentials)
 		if err != nil {
 			// Trả về lỗi 400 Bad Request nếu JSON không hợp lệ
 			http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
 			return
 		}
-		app.USER_STORE.Store(userCredentials.Username, userCredentials)
+		for _, user := range userCredentials {
+			app.USER_STORE.Store(user.Username, user)
+			fmt.Printf("added user %v \n", user)
+		}
 	})
 
 	r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
