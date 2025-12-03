@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-ngsc-erp/erp/attendance"
 	"go-ngsc-erp/erp/login"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -123,14 +124,19 @@ func (j *OneTimeJob) Run() {
 }
 
 func RunJob() {
-	c := cron.New(cron.WithSeconds())
+
+	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := cron.New(cron.WithLocation(loc))
 
 	go WaitForWritingLog()
 
 	printNextRunTime(DailyMorningCron)
 	printNextRunTime(DailyEveningCron)
 
-	_, err := c.AddFunc(DailyMorningCron, func() {
+	_, err = c.AddFunc(DailyMorningCron, func() {
 		currentTime := time.Now()
 		fmt.Printf("\n--- [%s] Start morning routine ---\n", currentTime.Format("15:04:05"))
 		USER_STORE.Range(func(key, value interface{}) bool {
