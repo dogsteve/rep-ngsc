@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chamcong-deployment
+  labels:
+    app: chamcong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chamcong
+  template:
+    metadata:
+      labels:
+        app: chamcong
+
+    spec:
+      containers:
+        - name: chamcong
+          image: harbor.ngsd.vn/chamcong/chamcong:v1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: ngs-harbor-secret
+
