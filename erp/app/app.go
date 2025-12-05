@@ -16,11 +16,11 @@ const customTimeFormat = "2006-01-02T15:04"
 const CsvPath = "./attendance.csv"
 const TimeLayout = time.RFC3339
 
-var DailyMorningCron = "0 0 8 * * *"
+var DailyMorningCron = "0 0 8 * * 1-5"
 
 //var DailyMorningCron = "0 * * * * *"
 
-var DailyEveningCron = "0 45 17 * * *"
+var DailyEveningCron = "0 45 17 * * 1-5"
 
 //var DailyEveningCron = "0 * * * * *"
 
@@ -132,8 +132,6 @@ func RunJob() {
 	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 
 	c := cron.New(cron.WithLocation(loc), cron.WithParser(parser))
-
-	go WaitForWritingLog()
 
 	printNextRunTime(DailyMorningCron)
 	printNextRunTime(DailyEveningCron)
