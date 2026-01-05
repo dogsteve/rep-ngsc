@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"go-ngsc-erp/internal/elog"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -38,7 +40,7 @@ func DoAction(action string, credentials UserCredentials) {
 	}
 	err := login.DoLogin(credentials.Username, credentials.Password)
 	if err != nil {
-		fmt.Printf("Error when do login with user %v %v\n", credentials, err)
+		elog.Error("Error when do login", elog.Fields{"user": credentials.Username, "err": err})
 		csvLog.ErrorDetail = "LOGIN ERROR: " + err.Error()
 		csvLog.Status = "ATTENDANCE FAILED"
 		CsvWriterChan <- csvLog
@@ -47,7 +49,7 @@ func DoAction(action string, credentials UserCredentials) {
 
 	err = attendance.DoAttendance(credentials.Username, credentials.UserId, credentials.ArgId)
 	if err != nil {
-		fmt.Printf("Error when do attendance with user %v %v\n", credentials, err)
+		elog.Error("Error when do attendance", elog.Fields{"user": credentials.Username, "err": err})
 		csvLog.ErrorDetail = "ATTENDANCE ERROR: " + err.Error()
 		csvLog.Status = "ATTENDANCE FAILED"
 		CsvWriterChan <- csvLog
@@ -61,19 +63,19 @@ func DoAction(action string, credentials UserCredentials) {
 func WaitForWritingLog() {
 	csvWriter, err := NewSyncCSVWriter(CsvPath, []string{"Username", "Action", "ActionTime", "ErrorDetail", "Status"})
 	if err != nil {
-		fmt.Println("Error when create csv writer " + err.Error())
+		elog.Error("Error when create csv writer", elog.F("err", err))
 		return
 	}
-	for log := range CsvWriterChan {
+	for logItem := range CsvWriterChan {
 		writeErr := csvWriter.WriteRow([]string{
-			log.Username,
-			log.Action,
-			log.ActionTime.Format(time.RFC3339),
-			log.ErrorDetail,
-			log.Status,
+			logItem.Username,
+			logItem.Action,
+			logItem.ActionTime.Format(time.RFC3339),
+			logItem.ErrorDetail,
+			logItem.Status,
 		})
 		if writeErr != nil {
-			fmt.Println("Error when write log " + writeErr.Error())
+			elog.Warn("Error when write log", elog.F("err", writeErr))
 		}
 	}
 	close(CsvWriterChan)
@@ -98,7 +100,7 @@ func printNextRunTime(cronString string) {
 
 	if err != nil {
 		// Trả về lỗi nếu chuỗi cron không hợp lệ (ví dụ: quá ít hoặc quá nhiều trường).
-		fmt.Printf("lỗi phân tích chuỗi cron '%s': %w \n", cronString, err)
+		elog.Warn("invalid cron string", elog.Fields{"cron": cronString, "err": err})
 		return
 	}
 
@@ -110,16 +112,16 @@ func printNextRunTime(cronString string) {
 	nextRunTime := schedule.Next(now)
 
 	// 4. Trả về thời gian chạy tiếp theo và không có lỗi.
-	fmt.Printf("nextRunTime %v \n", nextRunTime)
+	elog.Info("next run time", elog.Fields{"cron": cronString, "next": nextRunTime.Format(time.RFC3339)})
 }
 
 func (j *OneTimeJob) Run() {
 	defer func() {
-		fmt.Printf("[%s] 🗑️ Xóa Job Entry ID %d cho user %s\n", time.Now().Format("15:04:05"), j.ID, j.Username)
+		elog.Info("removing job entry", elog.Fields{"entry_id": j.ID, "user": j.Username})
 		j.Cron.Remove(j.ID)
 	}()
 
-	fmt.Printf("[%s] Start %s process user %v at %v\n", time.Now().Format("15:04:05"), j.ActionType, j.Username, time.Now())
+	elog.Info("start job", elog.Fields{"action": j.ActionType, "user": j.Username})
 	DoAction(j.ActionType, j.Credentials)
 }
 
@@ -127,6 +129,7 @@ func RunJob() {
 
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
 	if err != nil {
+		elog.Fatal("could not load timezone", elog.F("err", err))
 		log.Fatal(err)
 	}
 	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
@@ -138,7 +141,7 @@ func RunJob() {
 
 	_, err = c.AddFunc(DailyMorningCron, func() {
 		currentTime := time.Now()
-		fmt.Printf("\n--- [%s] Start morning routine ---\n", currentTime.Format("15:04:05"))
+		elog.Info("start morning routine", elog.F("ts", currentTime.Format("15:04:05")))
 		USER_STORE.Range(func(key, value interface{}) bool {
 			addTime := time.Duration(generateRandomInt(1, 20)) * time.Minute
 			newTime := currentTime.Add(addTime)
@@ -157,23 +160,22 @@ func RunJob() {
 
 			entryID, err := c.AddJob(newCronn, oneTimeJob)
 			if err != nil {
-				fmt.Printf("Error adding CHECKIN Job for %s: %v\n", userCredential.Username, err)
+				elog.Error("Error adding CHECKIN Job", elog.Fields{"user": userCredential.Username, "err": err})
 			} else {
 				oneTimeJob.ID = entryID
-				fmt.Printf("   -> Scheduled CHECKIN for %s at %s (EntryID: %d)\n", userCredential.Username, newCronn, entryID)
+				elog.Info("scheduled checkin", elog.Fields{"user": userCredential.Username, "cron": newCronn, "entry_id": entryID})
 			}
 			return true
 		})
-		fmt.Println("   --- End morning routine ---")
 		printNextRunTime(DailyMorningCron)
 	})
 	if err != nil {
-		fmt.Printf("Error adding Morning Routine Job: %v\n", err)
+		elog.Error("Error adding Morning Routine Job", elog.F("err", err))
 	}
 
 	_, err = c.AddFunc(DailyEveningCron, func() {
 		currentTime := time.Now()
-		fmt.Printf("\n--- [%s] Start evening routine ---\n", currentTime.Format("15:04:05"))
+		elog.Info("start evening routine", elog.F("ts", currentTime.Format("15:04:05")))
 		USER_STORE.Range(func(key, value interface{}) bool {
 			addTime := time.Duration(generateRandomInt(1, 40)) * time.Minute
 			newTime := currentTime.Add(addTime)
@@ -191,18 +193,17 @@ func RunJob() {
 
 			entryID, err := c.AddJob(newCronn, oneTimeJob)
 			if err != nil {
-				fmt.Printf("Error adding CHECKOUT Job for %s: %v\n", userCredential.Username, err)
+				elog.Error("Error adding CHECKOUT Job", elog.Fields{"user": userCredential.Username, "err": err})
 			} else {
 				oneTimeJob.ID = entryID
-				fmt.Printf("   -> Scheduled CHECKOUT for %s at %s (EntryID: %d)\n", userCredential.Username, newCronn, entryID)
+				elog.Info("scheduled checkout", elog.Fields{"user": userCredential.Username, "cron": newCronn, "entry_id": entryID})
 			}
 			return true
 		})
-		fmt.Println("   --- End evening routine ---")
 		printNextRunTime(DailyEveningCron)
 	})
 	if err != nil {
-		fmt.Printf("Error adding Evening Routine Job: %v\n", err)
+		elog.Error("Error adding Evening Routine Job", elog.F("err", err))
 	}
 
 	c.Start()

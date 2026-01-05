@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"time"
 
+	"go-ngsc-erp/internal/elog"
+
 	"resty.dev/v3"
 )
 
@@ -57,32 +59,35 @@ func BuildAttendanceJSON(userArgID int, userID int) DataJSON {
 		Params:  params,
 	}
 
+	elog.Debug("Built attendance JSON", elog.Fields{"request_id": requestID, "user_id": userID, "user_arg_id": userArgID})
+
 	return dataJSON
 }
 
 func DoAttendance(username string, userId, userArgId int) error {
 	loginSession, ok := login.LOGIN_SESSION[username]
 	if !ok {
-		fmt.Println("login.LOGIN_SESSION ERROR")
+		elog.Error("login session missing", elog.F("user", username))
 		return fmt.Errorf("need login first " + username)
 	}
 	if loginSession.ExpireTime.Compare(time.Now()) < 0 {
-		fmt.Println("login.LOGIN_SESSION ERROR")
+		elog.Warn("login session expired", elog.F("user", username))
 		return fmt.Errorf("need login first " + username)
 	}
 
-	fmt.Printf("login.LOGIN_SESSION OK %v\n", loginSession)
+	elog.Info("login session OK", elog.Fields{"user": username, "session_expires": loginSession.ExpireTime.Format(time.RFC3339)})
 	dataJSON := BuildAttendanceJSON(userArgId, userId)
 
 	restyClient := resty.New()
 	defer func(restyClient *resty.Client) {
 		err := restyClient.Close()
 		if err != nil {
-			fmt.Printf("%f", err)
+			elog.Error("error closing resty client", elog.F("err", err))
 		}
 	}(restyClient)
 
 	attendanceUrl := erp.ROOT_NGSC_URL + erp.ATTENDANCE_PREFIX_URL
+	elog.Debug("posting attendance", elog.Fields{"url": attendanceUrl, "user": username})
 	postResp, err := restyClient.R().
 		SetBody(dataJSON).
 		SetCookies(login.CreateLoginCookies(loginSession.SessionId)).
@@ -96,16 +101,17 @@ func DoAttendance(username string, userId, userArgId int) error {
 		Post(attendanceUrl)
 
 	if err != nil {
+		elog.Error("error posting attendance", elog.Fields{"err": err, "user": username})
 		return err
 	}
 
 	attendanceStt := postResp.StatusCode()
 	if attendanceStt != 200 {
-		fmt.Printf("Code is not valid: httpCode %d %s \n", attendanceStt, postResp.String())
+		elog.Warn("attendance http code not 200", elog.Fields{"code": attendanceStt, "body": postResp.String(), "user": username})
 		return fmt.Errorf("code is not 200: httpCode %d", attendanceStt)
 	}
 
-	fmt.Println("Attendance success")
+	elog.Info("Attendance success", elog.F("user", username))
 
 	return nil
 }

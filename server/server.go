@@ -5,12 +5,12 @@ import (
 	"go-ngsc-erp/erp/app"
 	"net/http"
 
+	"go-ngsc-erp/internal/elog"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 )
-
-const timeLayout = "2006-01-02 15:04:05"
 
 func StartServer() {
 	r := chi.NewRouter()
@@ -24,12 +24,14 @@ func StartServer() {
 		var userCredentials []app.UserCredentials
 		err := render.Decode(r, &userCredentials)
 		if err != nil {
+			elog.Warn("invalid upload payload", elog.F("err", err))
 			// Trả về lỗi 400 Bad Request nếu JSON không hợp lệ
 			http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
 			return
 		}
 		for _, user := range userCredentials {
 			app.USER_STORE.Store(user.Username, user)
+			elog.Info("added user", elog.Fields{"user": user.Username})
 			fmt.Printf("added user %v \n", user)
 		}
 	})
@@ -47,6 +49,7 @@ func StartServer() {
 		var cron CronnJobConfig
 		err := render.Decode(r, &cron)
 		if err != nil {
+			elog.Warn("invalid cron payload", elog.F("err", err))
 			// Trả về lỗi 400 Bad Request nếu JSON không hợp lệ
 			http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
 			return
@@ -63,6 +66,7 @@ func StartServer() {
 	r.Get("/statistic", func(w http.ResponseWriter, r *http.Request) {
 		result, err := app.ReadCSVAndMap()
 		if err != nil {
+			elog.Warn("error reading statistics", elog.F("err", err))
 			// Trả về lỗi 400 Bad Request nếu JSON không hợp lệ
 			http.Error(w, fmt.Sprintf("Invalid request payload: %v", err), http.StatusBadRequest)
 			return
@@ -70,8 +74,9 @@ func StartServer() {
 		render.JSON(w, r, result)
 	})
 
+	elog.Info("starting server", elog.F("addr", ":8080"))
 	err := http.ListenAndServe(":8080", r)
 	if err != nil {
-		panic(err)
+		elog.Fatal("server exited", elog.F("err", err))
 	}
 }
