@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: chamcong
-          image: harbor.ngsd.vn/chamcong/chamcong:v1.0.2
+          image: harbor.ngsd.vn/chamcong/chamcong:v1.0.5
           imagePullPolicy: Always
           ports:
             - containerPort: 80

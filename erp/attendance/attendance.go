@@ -1,6 +1,7 @@
 package attendance
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-ngsc-erp/erp"
 	"go-ngsc-erp/erp/login"
@@ -59,17 +60,19 @@ func BuildAttendanceJSON(userArgID int, userID int) DataJSON {
 		Params:  params,
 	}
 
+	jsonVal, _ := json.Marshal(dataJSON)
+	elog.Info(string(jsonVal), elog.F("ts", time.Now().Format(time.RFC3339)))
 	elog.Debug("Built attendance JSON", elog.Fields{"request_id": requestID, "user_id": userID, "user_arg_id": userArgID})
-
 	return dataJSON
 }
 
 func DoAttendance(username string, userId, userArgId int) error {
-	loginSession, ok := login.LOGIN_SESSION[username]
+	loginSessionVal, ok := login.LOGIN_SESSION.Load(username)
 	if !ok {
 		elog.Error("login session missing", elog.F("user", username))
 		return fmt.Errorf("need login first " + username)
 	}
+	loginSession := loginSessionVal.(*login.Session)
 	if loginSession.ExpireTime.Compare(time.Now()) < 0 {
 		elog.Warn("login session expired", elog.F("user", username))
 		return fmt.Errorf("need login first " + username)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"go-ngsc-erp/internal/elog"
@@ -13,7 +14,7 @@ import (
 	"resty.dev/v3"
 )
 
-var LOGIN_SESSION = make(map[string]Session)
+var LOGIN_SESSION = sync.Map{}
 
 func addLoginSession(username string, sessionId string, expireTime time.Time) {
 	loginSession := Session{
@@ -22,7 +23,7 @@ func addLoginSession(username string, sessionId string, expireTime time.Time) {
 		LoginTime:  time.Now(),
 		ExpireTime: expireTime,
 	}
-	LOGIN_SESSION[username] = loginSession
+	LOGIN_SESSION.Store(username, &loginSession)
 	elog.Info("Added login session", elog.F("user", username))
 }
 

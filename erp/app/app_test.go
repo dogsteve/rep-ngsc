@@ -11,22 +11,10 @@ func TestLoginAndAttendance(t *testing.T) {
 	// 1. Dữ liệu JSON đầu vào
 	rawJson := `[
 		{
-			"username": "duydv@ngs.com.vn",
-			"password": "Dangmai@123",
-			"userId": 6100,
-			"argId": 10246
-		},
-		{
 			"username": "minhnq1@ngs.com.vn",
 			"password": "Zen284366990!",
 			"userId": 6151,
 			"argId": 10335
-		},
-		{
-			"username": "cuongtv@ngs.com.vn",
-			"password": "554433aA@",
-			"userId": 6070,
-			"argId": 10183
 		}
 	]`
 

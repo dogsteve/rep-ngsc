@@ -46,7 +46,7 @@ func DoAction(action string, credentials UserCredentials) {
 		CsvWriterChan <- csvLog
 		return
 	}
-
+	time.Sleep(5 * time.Second) // Thời gian chờ giữa login và attendance
 	err = attendance.DoAttendance(credentials.Username, credentials.UserId, credentials.ArgId)
 	if err != nil {
 		elog.Error("Error when do attendance", elog.Fields{"user": credentials.Username, "err": err})
